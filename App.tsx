@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -11,9 +11,12 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { theme } from "./theme";
+import { debounce } from "lodash";
 
 import { MagnifyingGlassIcon } from "react-native-heroicons/outline";
 import { CalendarDaysIcon, MapPinIcon } from "react-native-heroicons/solid";
+import { fetchLocation, fetchWeatherForecast } from "./api/weather";
+import { weatherImages } from "./constant";
 
 const StyleView = styled(View);
 const StyleText = styled(Text);
@@ -21,13 +24,59 @@ const StyleSafeAreaView = styled(SafeAreaProvider);
 const StyleTextInput = styled(TextInput);
 const StyleTouchableOpacity = styled(TouchableOpacity);
 
+// Define the type for each location object
+type Location = {
+  country: string;
+  id: number;
+  lat: number;
+  lon: number;
+  name: string;
+  region: string;
+  url: string;
+};
+
 export default function App() {
   const [showSearch, toggleSearch] = useState<boolean>(false);
-  const [location, setLocation] = useState([1, 2, 3]);
+  const [searchLocation, setSearchLocation] = useState<Location[]>([]);
+  const [weather, setWeather] = useState<any>({});
 
-  const handleLocation = (location) => {
-    console.log("Location: ", location);
+  const handleSearch = (value: string) => {
+    if (value.length > 2) {
+      fetchLocation({ cityName: value }).then((data) => {
+        setSearchLocation(data);
+        // console.log(`Handle Search Location UseState ~ Result: `, location)
+      });
+    }
   };
+
+  const handleLocation = (loc: any) => {
+    setSearchLocation([]);
+    toggleSearch(false);
+    fetchWeatherForecast({
+      cityName: loc.name,
+      days: "7",
+    }).then((data) => {
+      setWeather(data);
+      console.log("Received Forecast: ", data);
+    });
+  };
+
+  useEffect(() => {
+    fetchMyWeatherData();
+  }, []);
+
+  const fetchMyWeatherData = async () => {
+    fetchWeatherForecast({
+      cityName: "Davao",
+      days: "7",
+    }).then((data) => {
+      setWeather(data);
+    });
+  };
+
+  const handleTextDebounce = useCallback(debounce(handleSearch, 1200), []); // Prevent real time text from changing, it will wait 1200 seconds
+
+  const { current, location } = weather;
 
   return (
     <StyleView className="flex-1 relative">
@@ -51,6 +100,7 @@ export default function App() {
           >
             {showSearch ? (
               <StyleTextInput
+                onChangeText={handleTextDebounce}
                 placeholder="Search City"
                 placeholderTextColor={"lightgray"}
                 className="h-10 pb-1 flex-1 text-base text-white"
@@ -65,16 +115,16 @@ export default function App() {
               <MagnifyingGlassIcon size="25" color="white" />
             </StyleTouchableOpacity>
           </StyleView>
-          {location.length > 0 && showSearch ? (
+          {searchLocation.length > 0 && showSearch ? (
             <StyleView className="absolute w-full bg-gray-300 top-16 rounded-3xl">
-              {location.map((loc, index) => {
-                let showBorder = index + 1 != location.length;
+              {searchLocation.map((loc, index) => {
+                let showBorder = index + 1 != searchLocation.length;
                 let borderClass = showBorder
                   ? "border-b-2 border-b-gray-400"
                   : "";
                 return (
                   <StyleTouchableOpacity
-                    onPress={() => handleLocation(location)}
+                    onPress={() => handleLocation(loc)}
                     key={index}
                     className={
                       "flex-row items-center border-0 p-3 px-4 mb-1" +
@@ -83,7 +133,7 @@ export default function App() {
                   >
                     <MapPinIcon size={20} color="gray" />
                     <StyleText className="text-black text-lg ml-2">
-                      Davao, Philippines
+                      {loc?.name}, {loc?.country}
                     </StyleText>
                   </StyleTouchableOpacity>
                 );
@@ -95,26 +145,26 @@ export default function App() {
         {/* Forecast */}
         <StyleView className="mx-4 flex justify-around flex-1 mb-2">
           <StyleText className="text-white text-center text-2xl font-bold">
-            Davao,
+            {location?.name},
             <StyleText className="text-lg font-semibold text-gray-300">
-              Philippines
+              {" " + location?.country}
             </StyleText>
           </StyleText>
 
           {/* Weather Image */}
           <StyleView className="flex-row justify-center">
             <Image
-              source={require("./assets/images/partlycloudy.png")}
+              source={weatherImages[current?.condition?.text]}
               className="w-52 h-52"
             />
           </StyleView>
 
           <StyleView className="space-y-2">
             <StyleText className="text-center font-bold text-white text-6xl ml-5">
-              26&#176;
+              {current?.temp_c}&#176;
             </StyleText>
             <StyleText className="text-center text-white text-xl tracking-widest">
-              Partly Cloudy
+              {current?.condition?.text}
             </StyleText>
           </StyleView>
 
@@ -126,7 +176,7 @@ export default function App() {
                 className="h-6 w-6"
               />
               <StyleText className="text-white font-semibold text-base">
-                22km
+                {current?.wind_kph}km
               </StyleText>
             </StyleView>
             <StyleView className="flex-row space-x-2 items-center">
@@ -135,7 +185,7 @@ export default function App() {
                 className="h-6 w-6"
               />
               <StyleText className="text-white font-semibold text-base">
-                23%
+                {current?.humidity}%
               </StyleText>
             </StyleView>
             <StyleView className="flex-row space-x-2 items-center">
@@ -163,58 +213,29 @@ export default function App() {
             contentContainerStyle={{ paddingHorizontal: 15 }}
             showsHorizontalScrollIndicator={false}
           >
-            <StyleView
-              className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4"
-              style={{ backgroundColor: theme.bgWhite(0.15) }}
-            >
-              <Image
-                source={require("./assets/images/heavyrain.png")}
-                className="h-11 w-11"
-              />
-              <StyleText className="text-white">Monday</StyleText>
-              <StyleText className="text-white text-xl font-semibold">
-                26&#176;
-              </StyleText>
-            </StyleView>
-            <StyleView
-              className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4"
-              style={{ backgroundColor: theme.bgWhite(0.15) }}
-            >
-              <Image
-                source={require("./assets/images/heavyrain.png")}
-                className="h-11 w-11"
-              />
-              <StyleText className="text-white">Monday</StyleText>
-              <StyleText className="text-white text-xl font-semibold">
-                26&#176;
-              </StyleText>
-            </StyleView>
-            <StyleView
-              className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4"
-              style={{ backgroundColor: theme.bgWhite(0.15) }}
-            >
-              <Image
-                source={require("./assets/images/heavyrain.png")}
-                className="h-11 w-11"
-              />
-              <StyleText className="text-white">Monday</StyleText>
-              <StyleText className="text-white text-xl font-semibold">
-                26&#176;
-              </StyleText>
-            </StyleView>
-            <StyleView
-              className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4"
-              style={{ backgroundColor: theme.bgWhite(0.15) }}
-            >
-              <Image
-                source={require("./assets/images/heavyrain.png")}
-                className="h-11 w-11"
-              />
-              <StyleText className="text-white">Monday</StyleText>
-              <StyleText className="text-white text-xl font-semibold">
-                26&#176;
-              </StyleText>
-            </StyleView>
+            {/* Loop forecast array */}
+            {weather?.forecast?.forecastday?.map((item, index) => {
+              let date = new Date(item.date);
+              let options = { weekday: "long" };
+              let dayName = date.toLocaleDateString("en-US", options);
+              dayName = dayName.split(",")[0];
+              return (
+                <StyleView
+                  key={index}
+                  className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4"
+                  style={{ backgroundColor: theme.bgWhite(0.15) }}
+                >
+                  <Image
+                    source={weatherImages[item?.day?.condition?.text]}
+                    className="h-11 w-11"
+                  />
+                  <StyleText className="text-white">{dayName}</StyleText>
+                  <StyleText className="text-white text-xl font-semibold">
+                    {item?.day?.avgtemp_c}&#176;
+                  </StyleText>
+                </StyleView>
+              );
+            })}
           </ScrollView>
         </StyleView>
       </StyleSafeAreaView>
