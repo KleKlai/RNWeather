@@ -1,20 +1,86 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
+import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { styled } from "nativewind";
+import { theme } from "./theme";
+
+import { MagnifyingGlassIcon } from "react-native-heroicons/outline";
+import { MapPinIcon } from "react-native-heroicons/solid";
+
+const StyleView = styled(View);
+const StyleText = styled(Text);
+const StyleSafeAreaView = styled(SafeAreaProvider);
+const StyleTextInput = styled(TextInput);
+const StyleTouchableOpacity = styled(TouchableOpacity);
 
 export default function App() {
+  const [showSearch, toggleSearch] = useState<boolean>(false);
+  const [location, setLocation] = useState([1,2,3])
+
+  const handleLocation = (location) => {
+    console.log('Location: ', location)
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <StyleView className="flex-1 relative">
+      <StatusBar style="light" />
+      <Image
+        blurRadius={70}
+        source={require("./assets/images/bg.png")}
+        className="absolute h-full w-full"
+      />
+
+      <StyleSafeAreaView className="flex flex-1">
+        <StyleView
+          style={{ height: "7%" }}
+          className="mx-4 my-24 relative z-50"
+        >
+          <StyleView
+            className="flex-row justify-end items-center rounded-full pl-4"
+            style={{ backgroundColor: showSearch? theme.bgWhite(0.2) : 'transparent' }}
+          >
+            {showSearch ? (
+              <StyleTextInput
+                placeholder="Search City"
+                placeholderTextColor={"lightgray"}
+                className="h-10 pb-1 flex-1 text-base text-white"
+              />
+            ) : null}
+
+            <StyleTouchableOpacity
+              onPress={() => toggleSearch(!showSearch)}
+              style={{ backgroundColor: theme.bgWhite(0.3) }}
+              className="rounded-full p-3 m-1"
+            >
+              <MagnifyingGlassIcon size="25" color="white" />
+            </StyleTouchableOpacity>
+          </StyleView>
+          {
+            location.length>0 && showSearch? (
+              <StyleView className="absolute w-full bg-gray-300 top-16 rounded-3xl">
+                {
+                  location.map((loc, index) => {
+                    let showBorder = index+1 != location.length;
+                    let borderClass = showBorder? 'border-b-2 border-b-gray-400': '';
+                    return (
+                      <StyleTouchableOpacity
+                      onPress={() => handleLocation(location)}
+                      key={index}
+                      className={"flex-row items-center border-0 p-3 px-4 mb-1" + borderClass}
+                      >
+                        <MapPinIcon size={20} color="gray" />
+                        <StyleText className="text-black text-lg ml-2">Davao, Philippines</StyleText>
+                      </StyleTouchableOpacity>
+                    )
+                  })
+                }
+              </StyleView>
+            ):null
+          }
+        </StyleView>
+
+      </StyleSafeAreaView>
+    </StyleView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
