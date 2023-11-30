@@ -80,6 +80,53 @@ export default function App() {
           }
         </StyleView>
 
+        {/* Forecast */}
+        <StyleView className="mx-4 flex justify-around flex-1 mb-2">
+          <StyleText className="text-white text-center text-2xl font-bold">
+            Davao,
+            <StyleText className="text-lg font-semibold text-gray-300">
+              Philippines
+            </StyleText>
+          </StyleText>
+
+          {/* Weather Image */}
+          <StyleView className="flex-row justify-center">
+            <Image source={require('./assets/images/partlycloudy.png')} className="w-52 h-52" />
+          </StyleView>
+
+          <StyleView className="space-y-2">
+            <StyleText className="text-center font-bold text-white text-6xl ml-5">
+                26&#176;
+            </StyleText>
+            <StyleText className="text-center text-white text-xl tracking-widest">
+                Partly Cloudy
+            </StyleText>
+          </StyleView>
+
+          {/* Other Stats */}
+          <StyleView className="flex-row justify-between mx-4">
+            <StyleView className="flex-row space-x-2 items-center">
+              <Image source={require('./assets/icons/wind.png')} className="h-6 w-6" />
+              <StyleText className="text-white font-semibold text-base">
+                22km
+              </StyleText>
+            </StyleView>
+            <StyleView className="flex-row space-x-2 items-center">
+              <Image source={require('./assets/icons/drop.png')} className="h-6 w-6" />
+              <StyleText className="text-white font-semibold text-base">
+                23%
+              </StyleText>
+            </StyleView>
+            <StyleView className="flex-row space-x-2 items-center">
+              <Image source={require('./assets/icons/sun.png')} className="h-6 w-6" />
+              <StyleText className="text-white font-semibold text-base">
+                6:04 AM
+              </StyleText>
+            </StyleView>
+          </StyleView>
+        </StyleView>
+
+        {/* forecast */}
       </StyleSafeAreaView>
     </StyleView>
   );
